@@ -41,14 +41,14 @@ lambda = seq(0.05, 0.25, 0.01)
 # Initial values
 N0 <- 1
 # Time point solutions
-t <- seq(0.1, 20, 0.1)
+t <- seq(0.1, 40, 0.1)
 # Simulation
 df <- data.frame(t)
 for (i in 1:length(lambda)){
   results <- lsoda(N0, t, ExponentialDecay, lambda[i], verbose = FALSE)
   df <- cbind(df, results[ ,2])
 }
-plot(1, 1,pch = "", xlim = c(0, 20), ylim = c(0, 1), xlab = "Time", ylab = "Concentration")
+plot(1, 1,pch = "", xlim = c(0, t[length(t)]), ylim = c(0, 1), xlab = "Time", ylab = "Concentration")
 for (i in 2:ncol(df)){
   lines(t, df[ ,i])
 }
