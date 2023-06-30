@@ -41,7 +41,7 @@ lambda = seq(0.05, 0.25, 0.01)
 # Initial values
 N0 <- 1
 # Time point solutions
-t <- seq(0.1, 20, 0.1)
+t <- seq(0.1, 40, 0.1)
 # Simulation
 df <- data.frame(t)
 for (i in 1:length(lambda)){
