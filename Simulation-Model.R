@@ -6,3 +6,7 @@
 #### END DOC STRING =======================================
 
 #### Parameters ####
+
+
+#### Model form ####
+dC/dt = 
