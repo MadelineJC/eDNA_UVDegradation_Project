@@ -300,14 +300,63 @@ legend("topright", legend=c("Deterministic data", "Observed data", "Estimated da
        col=c("black", "cornflowerblue", "firebrick2"), lty = c(1, NA, NA), pch = c(NA, 16, 18), cex=0.8)
 
 #### Missing data ####
-#### ... Scenario 4 ####
+#### ... Scenario 4: 20% of data ####
 t <- Scenario4 # Sampling events
+t <- sort(sample(t, length(t)*0.8)) # Remove 20% of observations
 y0_obs <- 1 # Starting value
 r_obs <- 0.15 # Constant rate of decay
 y_obs <- y0_obs*exp(-t/r_obs) # Generate observations
 plot(t, y_obs, pch = 16, xlab = "Day", ylab = "Observed Data") # Viz
 
+# Additive error
+y_obs_err <- y0_obs*exp(-t/r_obs) + rnorm(length(t), sd = 0.1)
+plot(t, y_obs_err, main = "Additive error", pch = 16)
+lines(t, y0_obs*exp(-t/r_obs), lwd = 2) 
 
+# Fitting with nls()
+fit <- nls(y_obs_err ~ y0_est*exp(-t/r_est), 
+           start = list(y0_est = 1, r_est = 0.05)) # Making starting value for r_est bad ~on purpose~
+coef(fit); y0_est <- coef(fit)[1]; r_est <- coef(fit)[2]
+# Plotting residuals to see variance in error
+plot(t, resid(fit), pch = 16)
+abline(h = 0, lty = 2)
+
+y_est <- y0_est*exp(-t/r_est)
+
+plot(t, y_obs, type = "l", xlab = "Day", ylab = "eDNA Concentration")
+points(t, y_obs_err, col = "cornflowerblue", pch = 16)
+points(t, y_est, col = "firebrick2", pch = 18)
+legend("topright", legend=c("Deterministic data", "Observed data", "Estimated data"),
+       col=c("black", "cornflowerblue", "firebrick2"), lty = c(1, NA, NA), pch = c(NA, 16, 18), cex=0.8)
+
+#### ... Scenario 4: 50% of data ####
+t <- Scenario4 # Sampling events
+t <- sort(sample(t, length(t)*0.5)) # Remove 50% of observations
+y0_obs <- 1 # Starting value
+r_obs <- 0.15 # Constant rate of decay
+y_obs <- y0_obs*exp(-t/r_obs) # Generate observations
+plot(t, y_obs, pch = 16, xlab = "Day", ylab = "Observed Data") # Viz
+
+# Additive error
+y_obs_err <- y0_obs*exp(-t/r_obs) + rnorm(length(t), sd = 0.1)
+plot(t, y_obs_err, main = "Additive error", pch = 16)
+lines(t, y0_obs*exp(-t/r_obs), lwd = 2) 
+
+# Fitting with nls()
+fit <- nls(y_obs_err ~ y0_est*exp(-t/r_est), 
+           start = list(y0_est = 1, r_est = 0.05)) # Making starting value for r_est bad ~on purpose~
+coef(fit); y0_est <- coef(fit)[1]; r_est <- coef(fit)[2]
+# Plotting residuals to see variance in error
+plot(t, resid(fit), pch = 16)
+abline(h = 0, lty = 2)
+
+y_est <- y0_est*exp(-t/r_est)
+
+plot(t, y_obs, type = "l", xlab = "Day", ylab = "eDNA Concentration")
+points(t, y_obs_err, col = "cornflowerblue", pch = 16)
+points(t, y_est, col = "firebrick2", pch = 18)
+legend("topright", legend=c("Deterministic data", "Observed data", "Estimated data"),
+       col=c("black", "cornflowerblue", "firebrick2"), lty = c(1, NA, NA), pch = c(NA, 16, 18), cex=0.8)
 
 
 
