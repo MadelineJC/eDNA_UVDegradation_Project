@@ -8,8 +8,6 @@
 #### Requifirebrick2 packages ####
 # install.packages("deSolve")
 library(deSolve)
-library(bbmle)
-library(rstan)
 
 #### Parameters ####
 # From Strickler et al., 2015, degradation rate under UV-B exposure ranges between 0.05 and 0.25 when UV-B is between 2 and 50 kJ/m2/day
@@ -241,7 +239,6 @@ points(t, y_est, col = "firebrick2", pch = 18)
 legend("topright", legend=c("Deterministic data", "Observed data", "Estimated data"),
        col=c("black", "cornflowerblue", "firebrick2"), lty = c(1, NA, NA), pch = c(NA, 16, 18), cex=0.8)
 
-
 #### ... Scenario 1 ####
 t <- Scenario1 # Sampling events
 y0_obs <- 1 # Starting value
@@ -269,7 +266,6 @@ points(t, y_obs_err, col = "cornflowerblue", pch = 16)
 points(t, y_est, col = "firebrick2", pch = 18)
 legend("topright", legend=c("Deterministic data", "Observed data", "Estimated data"),
        col=c("black", "cornflowerblue", "firebrick2"), lty = c(1, NA, NA), pch = c(NA, 16, 18), cex=0.8)
-
 
 #### ... Scenario 4 ####
 t <- Scenario4 # Sampling events
@@ -357,15 +353,3 @@ points(t, y_obs_err, col = "cornflowerblue", pch = 16)
 points(t, y_est, col = "firebrick2", pch = 18)
 legend("topright", legend=c("Deterministic data", "Observed data", "Estimated data"),
        col=c("black", "cornflowerblue", "firebrick2"), lty = c(1, NA, NA), pch = c(NA, 16, 18), cex=0.8)
-
-
-
-
-
-
-
-
-
-
-
-
