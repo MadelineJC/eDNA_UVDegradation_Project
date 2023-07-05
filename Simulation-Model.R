@@ -5,7 +5,7 @@
 # concentration over time). 
 #### END DOC STRING =======================================
 
-#### Requifirebrick2 packages ####
+#### Required packages ####
 # install.packages("deSolve")
 library(deSolve)
 
@@ -990,3 +990,38 @@ points(t, y_obs_err, col = "cornflowerblue", pch = 16)
 points(t, y_est, col = "firebrick2", pch = 18)
 legend("topright", legend=c("Deterministic data", "Observed data", "Estimated data"),
        col=c("black", "cornflowerblue", "firebrick2"), lty = c(1, NA, NA), pch = c(NA, 16, 18), cex=0.8)
+
+#### Including process error for barrel selection ####
+#### ... Getting constant degradation rates for each of 9 barrels ####
+# Required objects
+min <- 0.05; max <- 0.25; mean <- (min + max)/2; print(mean)
+num_barrels <- 9
+# Taking a look at distribution
+hist(rnorm(1000, mean = mean, sd = 0.1))
+# Sampling 9 lambdas
+lambdas <- c()
+set.seed(123)
+for (i in 1:num_barrels) {
+  lambdas[i] <- round(rnorm(1, mean = mean, sd = 0.1), digits = 2)
+  while(lambdas[i] < min | lambdas[i] > max)
+  {lambdas[i] <- round(rnorm(1, mean = mean, sd = 0.1), digits = 2)}
+}; print(lambdas); print(mean(lambdas))
+
+#### ... Setting up time series for each of 9 barrels ####
+all_times <- seq(0, 10, 2/24); num_samples <- round(length(all_times)/num_barrels)
+ts <- matrix(nrow = 13, ncol = 9)
+set.seed(123)
+for (i in 1:num_barrels){
+  t <- sort(sample(all_times, num_samples, replace = FALSE))
+  ts[ ,i] <- t
+  all_times <- all_times[!all_times %in% t]
+}; colnames(ts) <- c("t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9")
+
+#### ... Setting up loop to generate eDNA concentration data for 9 barrels ####
+# Let's try to do this for one barrel first
+# for the first barrel, the constant rate of degradation is lambdas[1], and the sampling times are ts[ ,1]
+
+
+
+
+
