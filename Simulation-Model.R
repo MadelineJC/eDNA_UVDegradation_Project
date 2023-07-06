@@ -7,6 +7,7 @@
 
 #### Required packages ####
 # install.packages("deSolve")
+library(tidyverse) # For like, 1 function, very sorry, lol
 library(deSolve)
 
 #### Parameters ####
@@ -1007,19 +1008,100 @@ for (i in 1:num_barrels) {
   {lambdas[i] <- round(rnorm(1, mean = mean, sd = 0.1), digits = 2)}
 }; print(lambdas); print(mean(lambdas))
 
-#### ... Setting up time series for each of 9 barrels ####
-all_times <- seq(0, 10, 2/24); num_samples <- round(length(all_times)/num_barrels)
-ts <- matrix(nrow = 13, ncol = 9)
+#### ... Setting up sampling regimes for each of 9 barrels ####
+all_times <- seq(0 + 2/24, 10, 2/24); num_samples <- round(length(all_times)/num_barrels) # Full time series divided by number of barrels; we can change this to make it more realistic
+ts <- matrix(nrow = num_samples, ncol = num_barrels) # Matrix of sampling regimes wherein each column contains the sampling regime for a different barrel
 set.seed(123)
 for (i in 1:num_barrels){
   t <- sort(sample(all_times, num_samples, replace = FALSE))
   ts[ ,i] <- t
   all_times <- all_times[!all_times %in% t]
 }; colnames(ts) <- c("t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9")
+t1 <- ts[ ,1]; t2 <- ts[ ,2]; t3 <- ts[ ,3]; t4 <- ts[ ,4]; t5 <- ts[ ,5]; t6 <- ts[ ,6]; t7 <- ts[ ,7]; t8 <- ts[ ,8]; t9 <- ts[ ,9] # Come up with an automated way of doing this
+
+
 
 #### ... Setting up loop to generate eDNA concentration data for 9 barrels ####
 # Let's try to do this for one barrel first
-# for the first barrel, the constant rate of degradation is lambdas[1], and the sampling times are ts[ ,1]
+
+# General structure
+N_prev <- 1; N_t <- c()
+for (i in 1:length(ts[ ,1])){
+  N_next <- N_prev*exp(-t1[i]/lambdas[1]) # Were t1 is the sampling regime for barrel 1, and lambda[1] is the constant rate of decay for barrel 1
+  N_t[i] <- N_next
+  N_next <- N_prev
+}; cbind(t1, N_t)
+
+
+# ?rbinom says that the arguments needed are n (number of observations), size (number of trials), and prob (probability of success on each trial) 
+# What's the difference between n and size?
+# n is how many runs of the simulation you do; i.e., the line below reads, Do 1 run, of N_prev coin flips, which exp(-t1[i]/lambdas[1]) probability of success.
+N_d <- rbinom(1, N_prev, exp(-t1[i]/lambdas[1]))
+N_next <- N_prev - N_d
+N_prev <- N_next
+
+N_prev <- 1e6; N_t <- c(); N_t[1] <- N_prev
+for (i in 1:length(t1)){
+  N_d <- rbinom(1, N_prev, exp(-t1[i]*lambdas[1]))
+  N_next <- N_prev - N_d
+  N_prev <- N_next
+  N_t[i + 1] <- N_prev
+}
+
+## NOTE: t1[i] should be time elapsed
+
+all_times <- sort(c(t1, t2, t3, t4, t5, t6, t7, t8, t9)); t_elap <- 2/24
+N_prev <- 1e6; N_t <- c(); N_t[1] <- N_prev; j <- 1
+for (i in all_times){
+  if (i %in% t1){
+    N_d <- rbinom(1, N_prev, exp(-t_elap/lambdas[1]))
+  } else{
+    if (i %in% t2){
+      N_d <- rbinom(1, N_prev, exp(-t_elap/lambdas[2]))
+    } else {
+      if (i %in% t3){
+        N_d <- rbinom(1, N_prev, exp(-t_elap/lambdas[3]))
+      } else {
+        if (i %in% t4){
+          N_d <- rbinom(1, N_prev, exp(-t_elap/lambdas[4]))
+        } else {
+          if (i %in% t5){
+            N_d <- rbinom(1, N_prev, exp(-t_elap/lambdas[5]))
+          } else {
+            if (i %in% t6){
+              N_d <- rbinom(1, N_prev, exp(-t_elap/lambdas[6]))
+            } else {
+              if (i %in% t7){
+                N_d <- rbinom(1, N_prev, exp(-t_elap/lambdas[7]))
+              } else {
+                if (i %in% t8){
+                  N_d <- rbinom(1, N_prev, exp(-t_elap/lambdas[8]))
+                } else {
+                  if (i %in% t9){
+                    N_d <- rbinom(1, N_prev, exp(-t_elap/lambdas[9]))
+                  } else {print(":(")}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  N_next <- N_prev - N_d
+  N_prev <- N_next
+  N_t[j + 1] <- N_prev
+  j <- j + 1
+}; 
+
+t <- c(0, all_times); N_t_prop <- N_t/1e6; data <- cbind(t, N_t_prop)
+
+data <- as.data.frame(data)
+plot(data$t[1:25], data$N_t_prop[1:25], type = "l")
+
+
+
+
 
 
 
