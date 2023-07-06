@@ -1092,7 +1092,7 @@ for (i in all_times){
   N_prev <- N_next
   N_t[j + 1] <- N_prev
   j <- j + 1
-}; 
+} 
 
 t <- c(0, all_times); N_t_prop <- N_t/1e6; data <- cbind(t, N_t_prop)
 
