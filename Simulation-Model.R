@@ -1092,10 +1092,12 @@ for (i in all_times){
   N_prev <- N_next
   N_t[j + 1] <- N_prev
   j <- j + 1
-}; t <- c(0, all_times); data <- cbind(t, N_t)
+} 
+
+t <- c(0, all_times); N_t_prop <- N_t/1e6; data <- cbind(t, N_t_prop)
 
 data <- as.data.frame(data)
-plot(data$t[1:25], data$N_t[1:25], type = "l")
+plot(data$t[1:25], data$N_t_prop[1:25], type = "l")
 
 
 
