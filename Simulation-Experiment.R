@@ -259,6 +259,25 @@ full_ts_ordered <- full_ts[with(full_ts, order(t)), ]
 plot(full_ts_ordered$t, full_ts_ordered$y_samp)
 
 #### Fitting generated data to exponential model ####
+## Organizing data
+dlist <- list(
+  n_times = length(full_ts_ordered$t) - 1, # Number of time steps
+  y0_obs = full_ts_ordered$y_samp[1], # Observed initial state
+  y = full_ts_ordered$y_samp[-1], # Observed data
+  t0 = 0, # Initial time step
+  ts = full_ts_ordered$t[-1] # Time steps
+)
+
+
+
+
+
+
+
+
+
+
+
 #### ... TO DO! ####
 
 #### Estimated abundances ####
