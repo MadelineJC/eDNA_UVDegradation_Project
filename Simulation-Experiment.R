@@ -47,7 +47,7 @@ for (i in 2:length(t1 + 1)){
 #### Sampling initial abundance ####
 set.seed(123); y_init <- 1e6
 y_samp_init <- y_select <- rbinom(1, y_init, samp_vol/(vol[1] + samp_vol))
-y_samp_init <- c(0.0, y_samp_init)
+y_samp_init <- c(NA, 0.0, y_samp_init)
 
 #### Generating data ####
 ## Barrel 1
@@ -74,6 +74,7 @@ for (i in 2:length(all_times)){
 First0 <- which(y1_obs_err == 0)[1]
 plot(x = all_times[1:First0], y = y1_obs_err[1:First0])
 y1_samp <- cbind(t1[2:length(t1)], y1_samp)
+Barrel <- c(rep(1, nrow(y1_samp))); y1_samp <- cbind(Barrel, y1_samp)
 
 ## Barrel 2
 set.seed(123)
@@ -96,6 +97,7 @@ for (i in 2:length(all_times)){
 First0 <- which(y2_obs_err == 0)[1]
 plot(x = all_times[1:First0], y = y2_obs_err[1:First0])
 y2_samp <- cbind(t2[2:length(t2)], y2_samp)
+Barrel <- c(rep(2, nrow(y2_samp))); y2_samp <- cbind(Barrel, y2_samp)
 
 ## Barrel 3
 set.seed(123)
@@ -118,6 +120,7 @@ for (i in 2:length(all_times)){
 First0 <- which(y3_obs_err == 0)[1]
 plot(x = all_times[1:First0], y = y3_obs_err[1:First0])
 y3_samp <- cbind(t3[2:length(t3)], y3_samp)
+Barrel <- c(rep(3, nrow(y3_samp))); y3_samp <- cbind(Barrel, y3_samp)
 
 ## Barrel 4
 set.seed(123)
@@ -140,6 +143,7 @@ for (i in 2:length(all_times)){
 First0 <- which(y4_obs_err == 0)[1]
 plot(x = all_times[1:First0], y = y4_obs_err[1:First0])
 y4_samp <- cbind(t4[2:length(t4)], y4_samp)
+Barrel <- c(rep(4, nrow(y4_samp))); y4_samp <- cbind(Barrel, y4_samp)
 
 ## Barrel 5
 set.seed(123)
@@ -162,6 +166,7 @@ for (i in 2:length(all_times)){
 First0 <- which(y5_obs_err == 0)[1]
 plot(x = all_times[1:First0], y = y5_obs_err[1:First0])
 y5_samp <- cbind(t5[2:length(t5)], y5_samp)
+Barrel <- c(rep(5, nrow(y5_samp))); y5_samp <- cbind(Barrel, y5_samp)
 
 ## Barrel 6
 set.seed(123)
@@ -184,6 +189,7 @@ for (i in 2:length(all_times)){
 First0 <- which(y6_obs_err == 0)[1]
 plot(x = all_times[1:First0], y = y6_obs_err[1:First0])
 y6_samp <- cbind(t6[2:length(t6)], y6_samp)
+Barrel <- c(rep(6, nrow(y6_samp))); y6_samp <- cbind(Barrel, y6_samp)
 
 ## Barrel 7
 set.seed(123)
@@ -206,6 +212,7 @@ for (i in 2:length(all_times)){
 First0 <- which(y7_obs_err == 0)[1]
 plot(x = all_times[1:First0], y = y7_obs_err[1:First0])
 y7_samp <- cbind(t7[2:length(t7)], y7_samp)
+Barrel <- c(rep(7, nrow(y7_samp))); y7_samp <- cbind(Barrel, y7_samp)
 
 ## Barrel 8
 set.seed(123)
@@ -228,6 +235,7 @@ for (i in 2:length(all_times)){
 First0 <- which(y8_obs_err == 0)[1]
 plot(x = all_times[1:First0], y = y8_obs_err[1:First0])
 y8_samp <- cbind(t8[2:length(t8)], y8_samp)
+Barrel <- c(rep(8, nrow(y8_samp))); y8_samp <- cbind(Barrel, y8_samp)
 
 ## Barrel 9
 set.seed(123)
@@ -250,15 +258,35 @@ for (i in 2:length(all_times)){
 First0 <- which(y9_obs_err == 0)[1]
 plot(x = all_times[1:First0], y = y9_obs_err[1:First0])
 y9_samp <- cbind(t9[2:length(t9)], y9_samp)
+Barrel <- c(rep(9, nrow(y9_samp))); y9_samp <- cbind(Barrel, y9_samp)
 
 full_ts <- rbind(y_samp_init, y1_samp, y2_samp, y3_samp, y4_samp, y5_samp, y6_samp, y7_samp, y8_samp, y9_samp)
-full_ts <- as.data.frame(full_ts); colnames(full_ts) <- c("t", "y_samp")
+full_ts <- as.data.frame(full_ts); colnames(full_ts) <- c("barrel", "t", "y_samp")
 # Ordering generated data by sampling time
 full_ts_ordered <- full_ts[with(full_ts, order(t)), ]
 # Plotting generated data
 plot(full_ts_ordered$t, full_ts_ordered$y_samp)
 
 #### Fitting generated data to exponential model ####
+## Organizing data
+dlist <- list(
+  n_times = length(full_ts_ordered$t) - 1, # Number of time steps
+  y0_obs = full_ts_ordered$y_samp[1], # Observed initial state
+  y = full_ts_ordered$y_samp[-1], # Observed data
+  t0 = 0, # Initial time step
+  ts = full_ts_ordered$t[-1] # Time steps
+)
+
+
+
+
+
+
+
+
+
+
+
 #### ... TO DO! ####
 
 #### Estimated abundances ####
