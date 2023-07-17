@@ -9,10 +9,10 @@ functions{
 }
 data {
   int<lower=1> n_times; // Number of time steps minus one
-  array[n_times] int y; // Observed data, minus initial state
+  int y; // Observed data, minus initial state
   int<lower=0> y0_obs; // Observed initial state
   real t0; // First time step
-  array[n_times] real ts; // Time steps
+  real ts; // Time steps
 }
 parameters {
   vector[1] y0; // Initial state
