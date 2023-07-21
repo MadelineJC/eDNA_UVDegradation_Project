@@ -1,0 +1,561 @@
+---
+title: "Model fits to experimental data"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+# Load required packages # 
+
+```{r message=TRUE, warning=TRUE, include=FALSE}
+library(rjags)
+library(dclone)
+library(tidyverse)
+library(readxl)
+library(MCMCvis)
+library(emdbook) # rzinbinom()
+```
+
+# Load the data # 
+
+Load the data from the excel sheet. Truncate the data at `obs_day >= 50` to include only observations from the endemic phase. 
+
+```{r warning=FALSE, messages = FALSE}
+endemic_df <- read_excel(
+    "/Users/leilakrichel/Desktop/Manuscript/ExperimentalData/ExperimentalData_2022.xlsx") %>% 
+  filter(obs_day >= 50) %>% 
+  select(1:5)
+
+population_ids <- endemic_df$population %>% unique()
+```
+
+# Logistic regression model #
+
+This model is fit to binary infection status data (individual is infected or uninfected) to estimate endemic infection prevalence. 
+
+## Prepare the data for jags ##
+
+Convert the data into a list with the following categories for each observation:
+
+- treatment: 2 levels (constant or variable)
+- population: 12 levels (replicate population)
+- Ntreatment: number of treatments
+- Npopulation: number of populations
+- y: 2 levels (infection status, 1 is infected, 0 is uninfected)
+
+```{r}
+endemic_jags <- 
+  list(
+    "treatment" = ifelse(endemic_df$population %in% population_ids[1:6], 1, 2), 
+    "population" = as.numeric(as.factor((endemic_df$population))), 
+    "Ntreatment" = 2,
+    "Npopulation" = 12, 
+    "y" = ifelse(endemic_df$n_clusters > 0, 1, 0)
+    )
+```
+
+## Define the logistic regression model ##
+
+```{r}
+logit_model <- function() {
+  
+  for(i in 1:length(y)) { 
+    
+    y[i] ~ dbern(p[i])
+    logit(p[i]) <- bT[treatment[i]] + aP[population[i]]
+    
+  }
+  
+  #Priors
+   
+  for (j in 1:Ntreatment) {
+    
+       bT[j] ~ dnorm(0, 0.5) # treatment effect 
+    
+     }
+  
+  for(k in 1:Npopulation) { 
+ 
+    aP[k] ~ dnorm(0, tauP) # population effect
+    
+  }
+  
+  tauP <- 1/(sigP * sigP)
+  sigP ~ dunif(0, 100)
+  
+  
+}
+```
+
+## Run the logistic regression model ##
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+logit_run <- jags.fit(
+  data = endemic_jags,
+  params = c("bT", "aP"),
+  model = logit_model,
+  n.chains = 4)
+```
+
+## Save the logistic regression model ##
+
+```{r, eval = FALSE}
+save(logit_run, 
+     file = "/Users/leilakrichel/Chp1/RData_Manuscript/LogitExp_Fig2.RData")
+```
+
+# Zero-inflated negative binomial model #
+
+This model is fit to infection burden data to estimate the distribution of infection burden at the endemic phase. 
+
+## Prepare the data for jags ##
+
+Convert the data into a list with the following categories for each observation:
+
+- treatment: 2 levels (1 is constant, 2 is variable)
+- population: 12 levels (1:6 are constant replicate populations, 7:12 are variable replicate populations)
+- Ntreatment: number of treatments
+- Npopulation: number of populations
+- y: observations of infection burden 
+
+```{r}
+burden_jags <-
+  list(
+    "treatment" = ifelse(endemic_df$population %in% population_ids[1:6], 1, 2), 
+    "Ntreatment" = 2,
+    "Npopulation" = 12,
+    "population" = as.numeric(as.factor((endemic_df$population))), 
+    "y" = endemic_df$n_clusters) 
+```
+
+## Define the zero-inflated negative binomial model ##
+
+Three parameters are being estimated from infection burden data:
+
+(1) **m, mean of negative binomial process:** varies by treatment, bT, and population, aP
+(2) k, overdisperesion parameter: varies by treatment
+(3) theta, probability of zero-inflation: varies by treatment
+
+```{r}
+ZINB_model <- function() {
+  
+  for(i in 1:length(y)) { 
+    
+    z[i] ~ dbern(theta[treatment[i]]) # ZI likelihood function 
+    y[i] ~ dnegbin(p[i], k[treatment[i]]) # NB likelihood function
+    
+    p[i] <- k[treatment[i]]/(k[treatment[i]] + lambda.zinb[i])
+    lambda.zinb[i] <- z[i] * m[i] 
+    
+    m[i] <- exp(bT[treatment[i]] + aP[population[i]]) 
+
+  }
+  
+  # Priors
+  
+  for (j in 1:Ntreatment) { 
+    
+    bT[j] ~ dnorm(3, 0.5) # treatment effect 
+    k[j] ~ dgamma(0.01, 0.01) 
+    theta[j] ~ dunif(0.000001, 0.9999999)
+    
+  }
+  
+  for(l in 1:Npopulation) { # for each population
+    
+    aP[l] ~ dnorm(0, tauP) # population effect 
+    
+  }
+  
+  tauP <- 1/(sigP * sigP) # precision 
+  sigP ~ dunif(0, 100)
+}
+```
+
+## Run the ZINB model ##
+
+```{r message=FALSE, warning=FALSE}
+ZINB_run <- jags.fit(
+  data = burden_jags,
+  params = c("bT", "aP", "k", "theta"),
+  n.chains = 4,
+  model = ZINB_model)
+```
+
+## Treatment-level posterior predictions of ZINB ##
+
+Use the fitted model `ZINB_run` to get distributions of mean infection burden and mean endemic prevalence in constant and variable temperature treatments. These distributions will be derived by "simulating" the experiment. 
+
+```{r}
+(zinb_posteriors <- 
+  as.data.frame(MCMCchains(ZINB_run)) %>% 
+  mutate(
+    chain = c(rep(1, 5000), 
+              rep(2, 5000), 
+              rep(3, 5000), 
+              rep(4, 5000)),
+    observation = rep(1:5000, 4)
+    ) %>% 
+   mutate(across(1:14, exp)) %>% 
+  gather(key = "parameter", value = "value", 1:18))
+
+replicate_population <- as.data.frame(MCMCchains(ZINB_run)) %>% 
+  select(1:12) %>% 
+  names()
+
+treatment <- as.data.frame(MCMCchains(ZINB_run)) %>% 
+  select(13:14) %>% 
+  names()
+
+overdispersion <- as.data.frame(MCMCchains(ZINB_run)) %>% 
+  select(15:16) %>% 
+  names()
+
+zero_inflation <- as.data.frame(MCMCchains(ZINB_run)) %>% 
+  select(17:18) %>% 
+  names()
+```
+
+Initialize storage objects: arrays will contain a matrix for constant and variable treatments and the matrix will contain the generated time-series of endemic prevalence and infection burden.
+
+```{r}
+zinb_prevalence <- replicate(2, vector(mode = "numeric", length = 5000), simplify = FALSE)
+zinb_burden <- replicate(2, vector(mode = "numeric", length = 5000), simplify = FALSE)
+zinb_fitted <- replicate(2, matrix(NA, nrow = 5000, ncol = 100), simplify = FALSE)
+```
+
+To simulate the experiment using the ZINB model, the following steps are coded in the for loop:
+
+1. Randomly choose a chain in the constant or variable treatment.
+2. Sample a random observation in the chosen chain to get a set of parameters (mu, k, theta). 
+4. Use the set of parameters to draw a sample of 12 "individuals" from the fitted ZINB distribution. 
+5. Calculate prevalence in the sample and mean infection burden. 
+
+This will compute distributions of endemic prevalence and mean infection burden in constant and variable treatments. 
+
+```{r eval = FALSE}
+for (i in 1:length(zinb_prevalence[[1]])) { 
+  for (j in 1:2) { # for each treatment
+    for (m in 1:100) {
+
+      set.seed(i * j * m)
+      # choose set estimated parameters from ZINB model fit
+      ## constant
+      
+      zinb_params <- zinb_posteriors %>%
+        filter(chain == sample(1:4, 1, replace = FALSE)) %>%
+        filter(observation == sample(1:5000, 1, replace = FALSE)) %>%
+        filter(parameter %in% c(
+                                treatment[j],
+                                overdispersion[j],
+                                zero_inflation[j])) %>%
+        select(value) %>%
+        unlist() 
+      
+      # sample from the fitted ZINB distribution
+      ## constant
+      samples <- rzinbinom(
+        150,
+        zprob = 1 - zinb_params[3],
+        size = zinb_params[2],
+        mu = zinb_params[1]
+      )
+      
+      samples2 <- rzinbinom(
+        5000,
+        zprob = 1 - zinb_params[3],
+        size = zinb_params[2],
+        mu = zinb_params[1]
+      )
+
+      # compute endemic prevalence and mean infection burden
+      zinb_prevalence[[j]][i] <- (samples[samples != 0] %>% 
+                                  length()) / 150
+      
+      zinb_burden[[j]][i] <- samples %>% mean()
+      zinb_fitted[[j]][, m] <- samples2
+
+
+      
+}}}
+```
+
+## ZINB predictions versus experimental observations of endemic prevalence ##
+
+Use the fitted model `ZINB_run` to get distributions of mean infection burden and mean endemic prevalence for each replicate population in constant and variable temperature treatments. These distributions will be derived by "simulating" the experiment (i.e., 26 time steps, 6 replicates per treatment). 
+
+Initialize storage objects. 
+```{r}
+prevalence_zinbpreds <- matrix(NA, nrow = 26, ncol = 12)
+burden_zinbpreds <- matrix(NA, nrow = 26, ncol = 12)
+```
+
+Calculate the number of individuals to sample from each replicate population in each treatment at each time step.
+
+```{r}
+nt_samples <- matrix(NA,
+                     nrow = 26,
+                     ncol = length(populations_ids))
+
+for (i in 1:length(populations_ids)) { 
+
+  nt_samples[, i] <- endemic_df %>%
+    filter(obs_day != 64) %>% # day 192 of experiment
+    filter(population == populations_ids[i]) %>%
+    group_by(obs_day) %>%
+    summarize(sample_size = n()) %>%
+    select(sample_size) %>%
+    unlist() 
+ } 
+``` 
+
+Sample from the fitted ZINB model using the following steps coded in the for loop:
+
+1. Randomly choose a chain in the constant or variable treatment.
+2. Sample a random observation in the chosen chain to get a set of parameters (mu, k, theta) for a given replicate population. 
+4. Use the set of parameters to draw a sample of individuals from the fitted ZINB distribution. 
+5. From the sample calculate endemic prevalence and mean infection burden. 
+
+```{r, eval = FALSE}
+for (i in 1:length(replicate_population)) {
+    for (m in 1:26) {
+
+      set.seed(i * m)
+      # for rep population i: 
+      # choose set of estimated parameters from ZINB model fit
+      
+      if (i <=6) { # constant populations
+      zinb_params <- zinb_posteriors %>%
+        filter(chain == sample(1:4, 1, replace = FALSE)) %>%
+        filter(observation == sample(1:5000, 1, replace = FALSE)) %>%
+        filter(
+          parameter %in% c(replicate_population[i],
+                           treatment[1],
+                           overdispersion[1],
+                           zero_inflation[1])) %>%
+        select(value) %>%
+        unlist() 
+      } 
+    
+      else { # variable populations
+          
+           zinb_params <- zinb_posteriors %>%
+        filter(chain == sample(1:4, 1, replace = FALSE)) %>%
+        filter(observation == sample(1:5000, 1, replace = FALSE)) %>%
+        filter(
+          parameter %in% c(replicate_population[i],
+                           treatment[2],
+                           overdispersion[2],
+                           zero_inflation[2])) %>%
+        select(value) %>%
+        unlist() 
+           
+           }
+      
+      # sample from the fitted ZINB distribution
+      samples <- rzinbinom(
+        nt_samples[m, i],
+        zprob = 1 - zinb_params[4],
+        size = zinb_params[3],
+        mu = zinb_params[2] + zinb_params[1]
+      )
+      
+      # compute endemic prevalence and mean infection burden
+      prevalence_zinbpreds[m, i] <- (samples[samples != 0] %>% 
+                                  length()) / nt_samples[m, i]
+      
+      burden_zinbpreds[m, i] <- samples %>% mean()
+      
+}}
+```
+
+## Save the ZINB model for figures 4 and 5 ##
+
+```{r eval = FALSE}
+save(ZINB_run, # zinb model fit 
+     zinb_posteriors, zinb_prevalence, zinb_burden, zinb_fitted, # treatment-level
+     prevalence_zinbpreds, burden_zinbpreds, # replicate-level
+     file = "/Users/leilakrichel/Chp1/RData_Manuscript/ZINBExp_Fig4.RData")
+```
+
+# Negative binomial model #
+
+This model is fit to infection burden data to estimate the distribution of infection burden at the endemic phase. 
+
+## Prepare the data for jags ##
+
+Use the same data from the ZINB model. 
+
+```{r}
+burden_jags %>% 
+  glimpse()
+```
+
+## Define the negative binomial model ##
+
+Two parameters are being estimated from infection burden data:
+
+(1) **m, mean of negative binomial process:** varies by treatment, bT, and population, aP
+(2) **k, overdisperesion parameter:** varies by treatment
+
+```{r}
+NB_model <- function() {
+  
+  for(i in 1:length(y)) { # for each observation [i]
+    
+    y[i] ~ dnegbin(p[i], k[treatment[i]]) 
+    
+    p[i] <- k[treatment[i]] / (k[treatment[i]] + lambda[i])
+  
+    lambda[i] <- exp(m[i]) 
+    m[i] <- bT[treatment[i]] + aP[population[i]]
+    
+  }
+
+  # priors
+  
+  for (j in 1:Ntreatment) {
+    
+    k[j] ~ dgamma(0.01, 0.01) 
+    bT[j] ~ dnorm(3, 0.5) 
+
+  }
+  
+  for(r in 1:Npopulation) {
+    
+    aP[r] ~ dnorm(0, tauP) # population effect
+    
+  }
+   
+  tauP <- 1/(sigP * sigP) 
+  sigP ~ dunif(0, 100)
+  
+}
+```
+
+## Run the NB model ##
+
+```{r}
+NB_run <- jags.fit(
+  data = burden_jags,
+  params = c("bT", "aP", "k"),
+  model = NB_model,
+  n.chains = 4)
+```
+
+## NB predictions versus experimental observations of endemic prevalence ##
+
+Use the fitted model `NB_run` to get distributions of mean infection burden and mean endemic prevalence for each replicate population in constant and variable temperature treatments. These distributions will be derived by "simulating" the experiment (i.e., 26 time steps, 6 replicates per treatment). 
+
+```{r}
+(nb_posteriors <- 
+  as.data.frame(MCMCchains(NB_run)) %>% 
+  mutate(
+    chain = c(rep(1, 5000), 
+              rep(2, 5000), 
+              rep(3, 5000), 
+              rep(4, 5000)),
+    observation = rep(1:5000, 4)
+    ) %>% 
+   mutate(across(1:14, exp)) %>% 
+  gather(key = "parameter", value = "value", 1:16))
+
+replicate_population <- as.data.frame(MCMCchains(NB_run)) %>% 
+  select(1:12) %>% 
+  names()
+
+treatment <- as.data.frame(MCMCchains(NB_run)) %>% 
+  select(13:14) %>% 
+  names()
+
+overdispersion <- as.data.frame(MCMCchains(NB_run)) %>% 
+  select(15:16) %>% 
+  names()
+```
+
+Initialize storage objects. 
+```{r}
+prevalence_nbpreds <- matrix(NA, nrow = 26, ncol = 12)
+burden_nbpreds <- matrix(NA, nrow = 26, ncol = 12)
+```
+
+Calculate the number of individuals to sample from each replicate population in each treatment at each time step.
+
+```{r}
+nt_samples %>% 
+  glimpse()
+``` 
+
+Sample from the fitted NB model using the following steps coded in the for loop:
+
+1. Randomly choose a chain in the constant or variable treatment.
+2. Sample a random observation in the chosen chain to get a set of parameters (m, k) for a given replicate population. 
+4. Use the set of parameters to draw a sample of individuals from the fitted ZINB distribution. 
+5. From the sample calculate endemic prevalence and mean infection burden. 
+
+```{r, eval = FALSE}
+for (i in 1:length(replicate_population)) {
+    for (m in 1:26) {
+
+      # for rep population i: 
+      # choose set of estimated parameters from ZINB model fit
+      
+      if (i <=6) { # constant populations
+      nb_params <- nb_posteriors %>%
+        filter(chain == sample(1:4, 1, replace = FALSE)) %>%
+        filter(observation == sample(1:5000, 1, replace = FALSE)) %>%
+        filter(
+          parameter %in% c(replicate_population[i],
+                           treatment[1],
+                           overdispersion[1]
+                           )) %>%
+        select(value) %>%
+        unlist() 
+      } 
+    
+      else { # variable populations
+          
+           nb_params <- nb_posteriors %>%
+        filter(chain == sample(1:4, 1, replace = FALSE)) %>%
+        filter(observation == sample(1:5000, 1, replace = FALSE)) %>%
+        filter(
+          parameter %in% c(replicate_population[i],
+                           treatment[2],
+                           overdispersion[2]
+                           )) %>%
+        select(value) %>%
+        unlist() 
+           
+           }
+      
+      # sample from the fitted ZINB distribution
+      samples <- rnbinom(
+        nt_samples[m, i],
+        size = nb_params[3],
+        mu = nb_params[2] + nb_params[1]
+      )
+      
+      # compute endemic prevalence and mean infection burden
+      prevalence_nbpreds[m, i] <- (samples[samples != 0] %>% 
+                                  length()) / nt_samples[m, i]
+      
+      burden_nbpreds[m, i] <- samples %>% mean()
+      
+}}
+```
+
+## Save the NB model for figures S ##
+
+## Save the ZINB model for figures 4 and 5 ##
+
+```{r eval = FALSE}
+save(ZINB_run, # zinb model fit 
+     zinb_posteriors, zinb_prevalence, zinb_burden, zinb_fitted, # treatment-level
+     prevalence_zinbpreds, burden_zinbpreds, # replicate-level,
+      prevalence_nbpreds, burden_nbpreds, # replicate-level
+     file = "/Users/leilakrichel/Chp1/RData_Manuscript/ZINBExp_Fig4.RData")
+```
+
+# END #
+
+

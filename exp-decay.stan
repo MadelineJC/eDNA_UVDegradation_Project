@@ -1,4 +1,3 @@
-// https://link.springer.com/article/10.3758/s13428-016-0746-9#Sec1 
 
 data {
   int LENGTH;
@@ -19,3 +18,4 @@ generated quantities {
   real pred;
   pred = exponential_rng(lambda);
 }
+

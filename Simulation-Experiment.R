@@ -1,6 +1,7 @@
 #### [INSERT A DOC STRING HERE] ####
 
 library(tidyverse)
+library(bayesplot)
 
 #### Getting constant degradation rates for each of 9 barrels ####
 # Required objects
@@ -269,15 +270,34 @@ plot(full_ts_ordered$t, full_ts_ordered$y_samp)
 
 #### Fitting generated data to exponential model ####
 ## Organizing data
-dlist <- list(
-  n_times = length(full_ts_ordered$t) - 1, # Number of time steps
-  y0_obs = full_ts_ordered$y_samp[1], # Observed initial state
-  y = full_ts_ordered$y_samp[-1], # Observed data
-  t0 = 0, # Initial time step
-  ts = full_ts_ordered$t[-1] # Time steps
-)
+y_samp <- full_ts_ordered$y_samp[1:22]; len <- length(y_samp)
+## Compiling model
+model <- stan_model("ExpDecay_Attempt1.stan")
+## Fitting model
+fit <- sampling(object = model,
+                data = list(Y = y_samp, LENGTH = len),
+                warmup = 500,
+                iter = 1000,
+                chains = 2,
+                cores = 2); print(fit)
+## Viz
+pars <- c("lambda")
+stan_trace(fit, pars)
+mcmc_dens(fit, pars)
 
 
+model <- stan_model("ExpDecay_Attempt2.stan")
+dat <- rexp(500, mean(r_vec)); len <- length(dat)
+hist(dat)
+fit <- sampling(object = model,
+                data = list(Y = dat, LENGTH = len),
+                warmup = 500,
+                iter = 1000,
+                chains = 2,
+                cores = 2); print(fit)
+pars <- c("lambda")
+stan_trace(fit, pars)
+mcmc_dens(fit, pars)
 
 
 
@@ -318,5 +338,33 @@ legend("topright", legend=c("Deterministic data", "Observed data", "Estimated da
 
 
 
+
+
+#### Let's try fitting in JAGS ####
+# Functional response project
+## One-step-ahead model with JAGS instead of Stan because I'm stupid
+
+# data {
+#   for (i in 2:ts) {
+#     New[i] <- y[i] - y[i-1]
+#   }
+# }
+
+model {
+  r ~ dunif(0, 1) # Decay rate
+  
+  # State var
+  n[1] <- 49807 # Data
+  
+  y_hat_n[1] <- 49807 # Estimation
+  
+  for (i in 2:t){
+    n[i] <- n[i - 1] + (n[i - 1]*exp(-dt*r))
+    
+    y_hat_n[i] <- n[i]; # Expectation
+    
+    C_P[i] ~ dpois(y_hat_P[i]);
+  }
+}
 
 
