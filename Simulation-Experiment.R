@@ -59,7 +59,7 @@ t_elap <- 0.5 # Units are in hours so 10 day * 24hrs, for example; CHANGE ALL_TI
 y_prev <- 1e6; y1_obs_err <- c(); y1_obs_err[1] <- y_prev; y1_samp <- c(); j <- 2
 # Loop to generate data with (1) process error, (2) environmental stochasticity, and (3) sampling error
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, t_elap*exp(-1*r_vec[1]*exp(-rnorm(1, 0, 0.1)))) # Determine eDNAs that "die" via exponential distribution (process error) and environmental stochasticity
+  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[1]*exp(-rnorm(1, 0, 0.1)))) # Determine eDNAs that "die" via exponential distribution (process error) and environmental stochasticity
   if (all_times[i] %in% t1){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) # Sample eDNAs from remaining with sampling error via sampled volume vs total remaining volume
     y1_samp[j - 1] <- y_select; j <- j + 1 # Add sampled eDNAs to observation vector
@@ -72,8 +72,7 @@ for (i in 2:length(all_times)){
     y1_obs_err[i] <- y_prev
   }
 }; plot(all_times, y1_obs_err)
-First0 <- which(y1_obs_err == 0)[1]
-plot(x = all_times[1:First0], y = y1_obs_err[1:First0])
+plot(x = all_times, y = y1_obs_err)
 y1_samp <- cbind(t1[2:length(t1)], y1_samp)
 Barrel <- c(rep(1, nrow(y1_samp))); y1_samp <- cbind(Barrel, y1_samp)
 
@@ -82,7 +81,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y2_obs_err <- c(); y2_obs_err[1] <- y_prev; y2_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, t_elap*exp(-1*r_vec[2]*exp(-rnorm(1, 0, 0.1)))) 
+  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[2]*exp(-rnorm(1, 0, 0.1)))) 
   if (all_times[i] %in% t2){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y2_samp[j - 1] <- y_select; j <- j + 1 
@@ -95,8 +94,7 @@ for (i in 2:length(all_times)){
     y2_obs_err[i] <- y_prev
   }
 }; plot(all_times, y2_obs_err)
-First0 <- which(y2_obs_err == 0)[1]
-plot(x = all_times[1:First0], y = y2_obs_err[1:First0])
+plot(x = all_times, y = y2_obs_err)
 y2_samp <- cbind(t2[2:length(t2)], y2_samp)
 Barrel <- c(rep(2, nrow(y2_samp))); y2_samp <- cbind(Barrel, y2_samp)
 
@@ -105,7 +103,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y3_obs_err <- c(); y3_obs_err[1] <- y_prev; y3_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, t_elap*exp(-1*r_vec[3]*exp(-rnorm(1, 0, 0.1)))) 
+  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[3]*exp(-rnorm(1, 0, 0.1)))) 
   if (all_times[i] %in% t3){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y3_samp[j - 1] <- y_select; j <- j + 1 
@@ -118,8 +116,7 @@ for (i in 2:length(all_times)){
     y3_obs_err[i] <- y_prev
   }
 }; plot(all_times, y3_obs_err)
-First0 <- which(y3_obs_err == 0)[1]
-plot(x = all_times[1:First0], y = y3_obs_err[1:First0])
+plot(x = all_times, y = y3_obs_err)
 y3_samp <- cbind(t3[2:length(t3)], y3_samp)
 Barrel <- c(rep(3, nrow(y3_samp))); y3_samp <- cbind(Barrel, y3_samp)
 
@@ -128,7 +125,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y4_obs_err <- c(); y4_obs_err[1] <- y_prev; y4_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, t_elap*exp(-1*r_vec[4]*exp(-rnorm(1, 0, 0.1)))) 
+  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[4]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t4){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y4_samp[j - 1] <- y_select; j <- j + 1 
@@ -141,8 +138,7 @@ for (i in 2:length(all_times)){
     y4_obs_err[i] <- y_prev
   }
 }; plot(all_times, y4_obs_err)
-First0 <- which(y4_obs_err == 0)[1]
-plot(x = all_times[1:First0], y = y4_obs_err[1:First0])
+plot(x = all_times, y = y4_obs_err)
 y4_samp <- cbind(t4[2:length(t4)], y4_samp)
 Barrel <- c(rep(4, nrow(y4_samp))); y4_samp <- cbind(Barrel, y4_samp)
 
@@ -151,7 +147,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y5_obs_err <- c(); y5_obs_err[1] <- y_prev; y5_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, t_elap*exp(-1*r_vec[5]*exp(-rnorm(1, 0, 0.1)))) 
+  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[5]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t5){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y5_samp[j - 1] <- y_select; j <- j + 1 
@@ -164,8 +160,7 @@ for (i in 2:length(all_times)){
     y5_obs_err[i] <- y_prev
   }
 }; plot(all_times, y5_obs_err)
-First0 <- which(y5_obs_err == 0)[1]
-plot(x = all_times[1:First0], y = y5_obs_err[1:First0])
+plot(x = all_times, y = y5_obs_err)
 y5_samp <- cbind(t5[2:length(t5)], y5_samp)
 Barrel <- c(rep(5, nrow(y5_samp))); y5_samp <- cbind(Barrel, y5_samp)
 
@@ -174,7 +169,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y6_obs_err <- c(); y6_obs_err[1] <- y_prev; y6_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, t_elap*exp(-1*r_vec[6]*exp(-rnorm(1, 0, 0.1)))) 
+  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[6]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t6){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y6_samp[j - 1] <- y_select; j <- j + 1 
@@ -187,8 +182,7 @@ for (i in 2:length(all_times)){
     y6_obs_err[i] <- y_prev
   }
 }; plot(all_times, y6_obs_err)
-First0 <- which(y6_obs_err == 0)[1]
-plot(x = all_times[1:First0], y = y6_obs_err[1:First0])
+plot(x = all_times, y = y6_obs_err)
 y6_samp <- cbind(t6[2:length(t6)], y6_samp)
 Barrel <- c(rep(6, nrow(y6_samp))); y6_samp <- cbind(Barrel, y6_samp)
 
@@ -197,7 +191,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y7_obs_err <- c(); y7_obs_err[1] <- y_prev; y7_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, t_elap*exp(-1*r_vec[7]*exp(-rnorm(1, 0, 0.1)))) 
+  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[7]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t7){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y7_samp[j - 1] <- y_select; j <- j + 1 
@@ -210,8 +204,7 @@ for (i in 2:length(all_times)){
     y7_obs_err[i] <- y_prev
   }
 }; plot(all_times, y7_obs_err)
-First0 <- which(y7_obs_err == 0)[1]
-plot(x = all_times[1:First0], y = y7_obs_err[1:First0])
+plot(x = all_times, y = y7_obs_err)
 y7_samp <- cbind(t7[2:length(t7)], y7_samp)
 Barrel <- c(rep(7, nrow(y7_samp))); y7_samp <- cbind(Barrel, y7_samp)
 
@@ -220,7 +213,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y8_obs_err <- c(); y8_obs_err[1] <- y_prev; y8_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, t_elap*exp(-1*r_vec[8]*exp(-rnorm(1, 0, 0.1)))) 
+  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[8]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t8){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y8_samp[j - 1] <- y_select; j <- j + 1 
@@ -233,8 +226,7 @@ for (i in 2:length(all_times)){
     y8_obs_err[i] <- y_prev
   }
 }; plot(all_times, y8_obs_err)
-First0 <- which(y8_obs_err == 0)[1]
-plot(x = all_times[1:First0], y = y8_obs_err[1:First0])
+plot(x = all_times, y = y8_obs_err)
 y8_samp <- cbind(t8[2:length(t8)], y8_samp)
 Barrel <- c(rep(8, nrow(y8_samp))); y8_samp <- cbind(Barrel, y8_samp)
 
@@ -243,7 +235,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y9_obs_err <- c(); y9_obs_err[1] <- y_prev; y9_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, t_elap*exp(-1*r_vec[9]*exp(-rnorm(1, 0, 0.1)))) 
+  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[9]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t9){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y9_samp[j - 1] <- y_select; j <- j + 1 
@@ -256,8 +248,7 @@ for (i in 2:length(all_times)){
     y9_obs_err[i] <- y_prev
   }
 }; plot(all_times, y9_obs_err)
-First0 <- which(y9_obs_err == 0)[1]
-plot(x = all_times[1:First0], y = y9_obs_err[1:First0])
+plot(x = all_times, y = y9_obs_err)
 y9_samp <- cbind(t9[2:length(t9)], y9_samp)
 Barrel <- c(rep(9, nrow(y9_samp))); y9_samp <- cbind(Barrel, y9_samp)
 
@@ -266,39 +257,147 @@ full_ts <- as.data.frame(full_ts); colnames(full_ts) <- c("barrel", "t", "y_samp
 # Ordering generated data by sampling time
 full_ts_ordered <- full_ts[with(full_ts, order(t)), ]
 # Plotting generated data
-plot(full_ts_ordered$t, full_ts_ordered$y_samp)
+colours <- c("black", "firebrick", "darkorange", "goldenrod2", "forestgreen", "cornflowerblue", "purple3", "orchid", "salmon")
+colidx <- c("white"); barrel <- as.numeric(full_ts_ordered$barrel)
+for (i in 2:length(full_ts_ordered$t)){
+  colidx[i] <- colours[barrel[i]]
+}
+plot(full_ts_ordered$t, full_ts_ordered$y_samp, col = colidx,
+     xlab = "Day", ylab = "eDNA Abundance (Sampled)")
+
+plot(x = all_times, y = y1_obs_err, col = "black", type = "l", xlab = "Day", ylab = "eDNA Abundance (Unsampled)")
+lines(x = all_times, y = y2_obs_err, col = "firebrick")
+lines(x = all_times, y = y3_obs_err, col = "darkorange")
+lines(x = all_times, y = y4_obs_err, col = "goldenrod2")
+lines(x = all_times, y = y5_obs_err, col = "forestgreen")
+lines(x = all_times, y = y6_obs_err, col = "cornflowerblue")
+lines(x = all_times, y = y7_obs_err, col = "purple3")
+lines(x = all_times, y = y8_obs_err, col = "orchid")
+lines(x = all_times, y = y9_obs_err, col = "salmon")
 
 #### Fitting generated data to exponential model ####
-## Organizing data
-y_samp <- full_ts_ordered$y_samp[1:22]; len <- length(y_samp)
-## Compiling model
-model <- stan_model("ExpDecay_Attempt1.stan")
-## Fitting model
-fit <- sampling(object = model,
-                data = list(Y = y_samp, LENGTH = len),
-                warmup = 500,
-                iter = 1000,
-                chains = 2,
-                cores = 2); print(fit)
-## Viz
-pars <- c("lambda")
-stan_trace(fit, pars)
-mcmc_dens(fit, pars)
+#### ... From Steph's script: ####
+#### ... ... Simulate data: ####
+a<-1.2			# growth rate
+b<-1.2/1200	# density dependence
+sig<-0.8		# process error
+N<-100			# timesteps
+
+y<-numeric(N+1)	# vector of population sizes
+y1<-600			# initial condition
+
+# Simulate data:
+set.seed(9823)
+y[1]<-y1
+for(i in 2:(N+1)) y[i]<-y[i-1]*exp(rnorm(n=1, a-b*y[i-1], sig))
+
+S<-y[1:N];		# spawners
+Y<-log(y[2:(N+1)]/S)	# productivity = log(recruits/spawner)
+
+plot(y, type="l", xlab="time", ylab="spawners"); abline(h=a/b, lty=3)
+plot(S, Y, xlab="spawners", ylab="productivity"); abline(a=a, b=-b, col=2); abline(h=0)
+
+#### ... ... ... Fit with JAGS: Single population ####
+# Need to write model function IN JAGS LANGUAGE (see user manual)
+ricker.model<-function(){	
+  # define priors on parameter (mean and PRECISION)
+  a ~ dnorm(0, 0.0001)
+  b ~ dnorm(0, 0.0001)
+  sigma ~ dunif(0, 100)
+  tau <- pow(sigma, -2)	
+  
+  # simulate model and likelihood
+  for(i in 1:N){ 					# for each data point
+    Y.hat[i] <- a-b*S[i] 		# expected value based on parameters
+    Y[i] ~ dnorm(Y.hat[i], tau) # probability of observation Y given expectation Y.hat
+  }
+}
+
+fit3<-jags.fit(data=list('Y'=Y, 'S'=S, 'N'=N), params=c("a", "b", "sigma"), model=ricker.model, n.chains=3, n.adapt=100)
+
+plot(fit3)
+summary(fit3) 
+
+#### ... ... Simulate hierarchical data: ####
+a<-1.2								# growth rate
+b<-1.2/1200							# density dependence
+sig<-0.3							# process error
+sigP<-0.8							# sd in growth rate among populations
+
+Nt<-50								# number of timesteps
+Np<-20								# number of populations
+thetaP<-rnorm(Np, mean=0, sd=sigP)	# population random-effect on growth rate
+
+t<-rep(1:(Nt+1), Np)				# vector of timesteps
+P<-rep(1:Np, each=(Nt+1))			# vector of population numbers
+y<-numeric((Nt+1)*Np)				# vector of population sizes (to be filled)
+y[which(t==1)]<-runif(Np, 100, 1000)# initialize with random number between 100 and 1000
+
+# Simulate data:
+for(i in 1:Np){ #for each population
+  for(j in 2:(Nt+1)){ #for each timestep
+    y[which(P==i&t==j)]<-y[which(P==i&t==(j-1))]*exp(rnorm(n=1, (a+thetaP[i])-b*y[which(P==i&t==(j-1))], sig))
+  }
+}
+
+# Make dataframe of spawners and productivity
+data<-data.frame(S=numeric(Nt*Np), Y=numeric(Nt*Np), Pop=numeric(Nt*Np))
+N<-Nt*Np
+
+k<-0
+for(i in 1:Np){
+  for(j in 1:Nt){
+    k<-k+1
+    data$S[k]<- y[which(P==i&t==j)]
+    data$Y[k]<- log(y[which(P==i&t==(j+1))]/y[which(P==i&t==j)])
+    data$Pop[k]<-i
+  }
+}
+
+xyplot(Y~S|Pop, data=data)
+
+#### ... ... ... Fit with JAGS: Hierarchical ####
+# Transform data to matrices to make model syntax easier
+S<-matrix(data$S, nrow=Np, ncol=Nt, byrow=TRUE)
+Y<-matrix(data$Y, nrow=Np, ncol=Nt, byrow=TRUE)
+
+H.ricker.model<-function(){
+  # Priors on parameters
+  a ~ dnorm(0, 0.0001)
+  b ~ dnorm(0, 0.0001)
+  sig ~ dunif(0, 100)
+  sigP ~ dunif(0, 100)
+  tauP <- pow(sigP, -2)
+  tau <- pow(sig, -2)
+  
+  # Hierarchical part - a different thetaP for each population:
+  for(i in 1:Np){
+    thetaP[i] ~ dnorm(0, tauP)
+  }
+  
+  # Model simulation and likelihood
+  for(j in 1:Np){ #for each population
+    for(i in 1:Nt){ #for each time step
+      Y.hat[j,i] <- a + thetaP[j] - b*S[j,i] # calculate model prediction
+      Y[j,i] ~ dnorm(Y.hat[j,i], tau) #likelihood
+    } #end i
+  } # end j	
+}
 
 
-model <- stan_model("ExpDecay_Attempt2.stan")
-dat <- rexp(500, mean(r_vec)); len <- length(dat)
-hist(dat)
-fit <- sampling(object = model,
-                data = list(Y = dat, LENGTH = len),
-                warmup = 500,
-                iter = 1000,
-                chains = 2,
-                cores = 2); print(fit)
-pars <- c("lambda")
-stan_trace(fit, pars)
-mcmc_dens(fit, pars)
+hfit2<-jags.fit(data=list('S'=S, 'Y'=Y, 'Np'=Np, 'Nt'=Nt), params=c("a", "b", "sig", "sigP"), model=H.ricker.model)
 
+S<-summary(hfit2)
+par(mfrow=c(2,2))
+for(i in 1:4){
+  hist(hfit2[[1]][,i], main=colnames(hfit2[[1]])[i], col="#00000030", border=NA, xlab="", freq=FALSE)
+  hist(hfit2[[2]][,i], main=colnames(hfit2[[2]])[i], col="#FF000030", add=TRUE, freq=FALSE, border=NA)
+  hist(hfit2[[3]][,i], main=colnames(hfit2[[3]])[i], col="#00FF0030", add=TRUE, freq=FALSE, border=NA)
+  abline(v=S[[1]][i,1], lty=2)
+  abline(v=c(a,b,sig,sigP)[i])
+  abline(v=hfit1.par[i], lty=3)
+}
+legend("topright", lty=c(1,2,3), c("Real", "JAGS", "lmer"))
 
 
 
@@ -333,38 +432,5 @@ legend("topright", legend=c("Deterministic data", "Observed data", "Estimated da
 
 
 
-
-# Initially, sample every barrel, every hour, until they're empty
-
-
-
-
-
-#### Let's try fitting in JAGS ####
-# Functional response project
-## One-step-ahead model with JAGS instead of Stan because I'm stupid
-
-# data {
-#   for (i in 2:ts) {
-#     New[i] <- y[i] - y[i-1]
-#   }
-# }
-
-model {
-  r ~ dunif(0, 1) # Decay rate
-  
-  # State var
-  n[1] <- 49807 # Data
-  
-  y_hat_n[1] <- 49807 # Estimation
-  
-  for (i in 2:t){
-    n[i] <- n[i - 1] + (n[i - 1]*exp(-dt*r))
-    
-    y_hat_n[i] <- n[i]; # Expectation
-    
-    C_P[i] ~ dpois(y_hat_P[i]);
-  }
-}
 
 
