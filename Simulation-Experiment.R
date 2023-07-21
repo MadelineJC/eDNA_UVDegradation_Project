@@ -358,8 +358,10 @@ xyplot(Y~S|Pop, data=data)
 
 #### ... ... ... Fit with JAGS: Hierarchical ####
 # Transform data to matrices to make model syntax easier
-S<-matrix(data$S, nrow=Np, ncol=Nt, byrow=TRUE)
-Y<-matrix(data$Y, nrow=Np, ncol=Nt, byrow=TRUE)
+Np <- 20 # Because 20 populations
+Nt <- 50 # Because number of time points
+S<-matrix(data$S, nrow=Np, ncol=Nt, byrow=TRUE) # Where S is number of spawners
+Y<-matrix(data$Y, nrow=Np, ncol=Nt, byrow=TRUE) # Where Y is productivity (= log(recruits/spawner))
 
 H.ricker.model<-function(){
   # Priors on parameters
@@ -388,8 +390,8 @@ H.ricker.model<-function(){
 hfit2<-jags.fit(data=list('S'=S, 'Y'=Y, 'Np'=Np, 'Nt'=Nt), params=c("a", "b", "sig", "sigP"), model=H.ricker.model)
 
 S<-summary(hfit2)
-par(mfrow=c(2,2))
-for(i in 1:4){
+par(mfrow=c(1,1))
+for(i in 1:7){
   hist(hfit2[[1]][,i], main=colnames(hfit2[[1]])[i], col="#00000030", border=NA, xlab="", freq=FALSE)
   hist(hfit2[[2]][,i], main=colnames(hfit2[[2]])[i], col="#FF000030", add=TRUE, freq=FALSE, border=NA)
   hist(hfit2[[3]][,i], main=colnames(hfit2[[3]])[i], col="#00FF0030", add=TRUE, freq=FALSE, border=NA)
@@ -398,6 +400,115 @@ for(i in 1:4){
   abline(v=hfit1.par[i], lty=3)
 }
 legend("topright", lty=c(1,2,3), c("Real", "JAGS", "lmer"))
+
+
+#### For Ning's stuff ####
+#### ... Data manip ####
+## Steph made matrices wherein rows were populations, and columns were time points. We have to switch that up a bit potentially because populations aren't sampled at same time points?
+y <- matrix(nrow = num_barrels, ncol = length(all_times)); colnames(y) <- all_times
+t1 <- t1[2:length(t1)]; t2 <- t2[2:length(t2)]; t3 <- t3[2:length(t3)]; t4 <- t4[2:length(t4)]; t5 <- t5[2:length(t5)]; t6 <- t6[2:length(t6)]; t7 <- t7[2:length(t7)]; t8 <- t8[2:length(t8)]; t9 <- t9[2:length(t9)]
+b1 <- 1; b2 <- 1; b3 <- 1; b4 <- 1; b5 <- 1; b6 <- 1; b7 <- 1; b8 <- 1; b9 <- 1
+for (i in 1:length(all_times)){
+  if (all_times[i] %in% t1){
+    y[1, i] <- y1_samp[b1, 3]
+    b1 <- b1 + 1
+  } else {
+    if (all_times[i] %in% t2){
+      y[2, i] <- y2_samp[b2, 3]
+      b2 <- b2 + 1
+    } else {
+      if (all_times[i] %in% t3){
+        y[3, i] <- y3_samp[b3, 3]
+        b3 <- b3 + 1
+      } else {
+        if (all_times[i] %in% t4){
+          y[4, i] <- y4_samp[b4, 3]
+          b4 <- b4 + 1
+        } else {
+          if (all_times[i] %in% t5){
+            y[5, i] <- y5_samp[b5, 3]
+            b5 <- b5 + 1
+          } else {
+            if (all_times[i] %in% t6){
+              y[6, i] <- y6_samp[b6, 3]
+              b6 <- b6 + 1
+            } else {
+              if (all_times[i] %in% t7){
+                y[7, i] <- y7_samp[b7, 3]
+                b7 <- b7 + 1
+              } else {
+                if (all_times[i] %in% t8){
+                  y[8, i] <- y8_samp[b8, 3]
+                  b8 <- b8 + 1
+                } else {
+                  if (all_times[i] %in% t9){
+                    y[9, i] <- y9_samp[b9, 3]
+                    b9 <- b9 + 1
+                  } else { print(":(") }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+y[ ,1] <- rep(full_ts_ordered$y_samp[1], nrow(y)) # Might have to change this such that there's a different initial sample from each bucket but for now, keeping as is because shouldn't make a huge difference
+
+#### ... JAGS ####
+exp_decay_model <- function(){
+  
+  # Priors on parameters
+  alpha ~ dunif(0, 1)
+  alpha_tau ~ dunif(0, 100)
+  alpha_tau_pop ~ dunif(0, 100)
+  
+  # Hierarchical part - a different theta_pop for each population:
+  for(i in 1:num_barrels){
+    theta_pop[i] ~ dnorm(0, alpha_tau_pop)
+  }
+  
+  # Model simulation
+  for (i in 1:num_barrels){ # For each population
+    for (j in 1:ncol(y)){ # For each time step
+      if (!is.na(y[i, j])){
+        yhat[i, j] <- yhat[i, j]*exp(-t_elap*alpha_pop*theta_pop[i]) # Calculate model prediction
+      }
+    }
+  }
+  
+  # Likelihood
+  for (i in 1:num_barrels){ 
+    for (j in 1:length(all_times)){ 
+      if(!is.na(y[i, j])){
+        y[i, j] ~ dpois(yhat[i, j]) # Likelihood
+      }
+    } 
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
