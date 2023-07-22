@@ -55,7 +55,7 @@ y_samp_init <- c(NA, 0.0, y_samp_init)
 # Set seed because reproducibility
 set.seed(123)
 # Setting up initial abundance, and empty vector to fill with observations
-t_elap <- 0.5 # Units are in hours so 10 day * 24hrs, for example; CHANGE ALL_TIMES
+t_elap <- 0.5 # Units are in days, so 0.5 is half a day
 y_prev <- 1e6; y1_obs_err <- c(); y1_obs_err[1] <- y_prev; y1_samp <- c(); j <- 2
 # Loop to generate data with (1) process error, (2) environmental stochasticity, and (3) sampling error
 for (i in 2:length(all_times)){
