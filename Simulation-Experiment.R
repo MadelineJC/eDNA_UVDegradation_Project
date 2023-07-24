@@ -332,45 +332,7 @@ for (i in 1:length(all_times)){
   }
 }
 y[ ,1] <- rep(full_ts_ordered$y_samp[1], nrow(y)) # Might have to change this such that there's a different initial sample from each bucket but for now, keeping as is because shouldn't make a huge difference
-y[is.na(y)] = -1
 
-#### ... JAGS ####
-## With NA statement
-# exp_decay_model <- function(){
-#   t_elap <- 0.5
-#   
-#   # Priors on parameters
-#   alpha ~ dunif(0, 1)
-#   alpha_tau ~ dunif(0, 100)
-#   alpha_tau_pop ~ dunif(0, 100)
-#   y0_mean ~ dnorm(50000, 10)
-#   y0_var ~ dnorm(0, 10)
-#   
-#   # Hierarchical part - a different theta_pop for each population:
-#   for(i in 1:num_barrels){
-#     theta_pop[i] ~ dnorm(0, alpha_tau_pop)
-#     y0[i] ~ dnorm(y0_mean, y0_var)
-#   }
-#   
-#   # Model simulation
-#   for (i in 1:num_barrels){ # For each population
-#     yhat[i, 1] <- y0[i]
-#     for (j in 2:ncol(y)){ # For each time step
-#         yhat[i, j] <- yhat[i, j - 1]*exp(-t_elap*alpha_pop*theta_pop[i]) # Calculate model prediction
-#     }
-#   }
-#   
-#   # Likelihood
-#   for (i in 1:num_barrels){ 
-#     for (j in 1:length(all_times)){ 
-#       if(!is.na(y[i, j])){
-#         y[i, j] ~ dpois(yhat[i, j]) # Likelihood
-#       }
-#     } 
-#   }
-# }
-
-## Without NA statement
 exp_decay_model <- function(){
   t_elap <- 0.5
   
@@ -379,7 +341,7 @@ exp_decay_model <- function(){
   alpha_tau ~ dunif(0, 100)
   alpha_tau_pop ~ dunif(0, 100)
   y0_mean ~ dnorm(50000, 10)
-  y0_var ~ dnorm(0, 10)
+  y0_var ~ dunif(0, 10)
   
   # Hierarchical part - a different theta_pop for each population:
   for(i in 1:num_barrels){
@@ -391,7 +353,7 @@ exp_decay_model <- function(){
   for (i in 1:num_barrels){ # For each population
     yhat[i, 1] <- y0[i]
     for (j in 2:length(all_times)){ # For each time step
-      yhat[i, j] <- yhat[i, j - 1]*exp(-t_elap*alpha_tau_pop*theta_pop[i]) # Calculate model prediction
+      yhat[i, j] <- yhat[i, j - 1]*exp(-t_elap*alpha*theta_pop[i]) # Calculate model prediction
     }
   }
   
@@ -408,7 +370,7 @@ exp_decay_model <- function(){
 fit <- jags.fit(data = list("y" = y, "num_barrels" = num_barrels, "all_times" = all_times), 
                 params = c("alpha", "alpha_tau", "alpha_tau_pop", "y0_mean", "y0_var"), 
                 model = exp_decay_model)
-fit_summ <- summary(fit)
+summary(fit)
 
 
 
