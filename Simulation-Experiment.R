@@ -1,7 +1,11 @@
 #### [INSERT A DOC STRING HERE] ####
 
 library(tidyverse)
-library(bayesplot)
+library(rjags)
+library(runjags)
+library(dclone)
+library(lattice)
+library(lme4)
 
 #### Getting constant degradation rates for each of 9 barrels ####
 # Required objects
@@ -276,133 +280,6 @@ lines(x = all_times, y = y8_obs_err, col = "orchid")
 lines(x = all_times, y = y9_obs_err, col = "salmon")
 
 #### Fitting generated data to exponential model ####
-#### ... From Steph's script: ####
-#### ... ... Simulate data: ####
-a<-1.2			# growth rate
-b<-1.2/1200	# density dependence
-sig<-0.8		# process error
-N<-100			# timesteps
-
-y<-numeric(N+1)	# vector of population sizes
-y1<-600			# initial condition
-
-# Simulate data:
-set.seed(9823)
-y[1]<-y1
-for(i in 2:(N+1)) y[i]<-y[i-1]*exp(rnorm(n=1, a-b*y[i-1], sig))
-
-S<-y[1:N];		# spawners
-Y<-log(y[2:(N+1)]/S)	# productivity = log(recruits/spawner)
-
-plot(y, type="l", xlab="time", ylab="spawners"); abline(h=a/b, lty=3)
-plot(S, Y, xlab="spawners", ylab="productivity"); abline(a=a, b=-b, col=2); abline(h=0)
-
-#### ... ... ... Fit with JAGS: Single population ####
-# Need to write model function IN JAGS LANGUAGE (see user manual)
-ricker.model<-function(){	
-  # define priors on parameter (mean and PRECISION)
-  a ~ dnorm(0, 0.0001)
-  b ~ dnorm(0, 0.0001)
-  sigma ~ dunif(0, 100)
-  tau <- pow(sigma, -2)	
-  
-  # simulate model and likelihood
-  for(i in 1:N){ 					# for each data point
-    Y.hat[i] <- a-b*S[i] 		# expected value based on parameters
-    Y[i] ~ dnorm(Y.hat[i], tau) # probability of observation Y given expectation Y.hat
-  }
-}
-
-fit3<-jags.fit(data=list('Y'=Y, 'S'=S, 'N'=N), params=c("a", "b", "sigma"), model=ricker.model, n.chains=3, n.adapt=100)
-
-plot(fit3)
-summary(fit3) 
-
-#### ... ... Simulate hierarchical data: ####
-a<-1.2								# growth rate
-b<-1.2/1200							# density dependence
-sig<-0.3							# process error
-sigP<-0.8							# sd in growth rate among populations
-
-Nt<-50								# number of timesteps
-Np<-20								# number of populations
-thetaP<-rnorm(Np, mean=0, sd=sigP)	# population random-effect on growth rate
-
-t<-rep(1:(Nt+1), Np)				# vector of timesteps
-P<-rep(1:Np, each=(Nt+1))			# vector of population numbers
-y<-numeric((Nt+1)*Np)				# vector of population sizes (to be filled)
-y[which(t==1)]<-runif(Np, 100, 1000)# initialize with random number between 100 and 1000
-
-# Simulate data:
-for(i in 1:Np){ #for each population
-  for(j in 2:(Nt+1)){ #for each timestep
-    y[which(P==i&t==j)]<-y[which(P==i&t==(j-1))]*exp(rnorm(n=1, (a+thetaP[i])-b*y[which(P==i&t==(j-1))], sig))
-  }
-}
-
-# Make dataframe of spawners and productivity
-data<-data.frame(S=numeric(Nt*Np), Y=numeric(Nt*Np), Pop=numeric(Nt*Np))
-N<-Nt*Np
-
-k<-0
-for(i in 1:Np){
-  for(j in 1:Nt){
-    k<-k+1
-    data$S[k]<- y[which(P==i&t==j)]
-    data$Y[k]<- log(y[which(P==i&t==(j+1))]/y[which(P==i&t==j)])
-    data$Pop[k]<-i
-  }
-}
-
-xyplot(Y~S|Pop, data=data)
-
-#### ... ... ... Fit with JAGS: Hierarchical ####
-# Transform data to matrices to make model syntax easier
-Np <- 20 # Because 20 populations
-Nt <- 50 # Because number of time points
-S<-matrix(data$S, nrow=Np, ncol=Nt, byrow=TRUE) # Where S is number of spawners
-Y<-matrix(data$Y, nrow=Np, ncol=Nt, byrow=TRUE) # Where Y is productivity (= log(recruits/spawner))
-
-H.ricker.model<-function(){
-  # Priors on parameters
-  a ~ dnorm(0, 0.0001)
-  b ~ dnorm(0, 0.0001)
-  sig ~ dunif(0, 100)
-  sigP ~ dunif(0, 100)
-  tauP <- pow(sigP, -2)
-  tau <- pow(sig, -2)
-  
-  # Hierarchical part - a different thetaP for each population:
-  for(i in 1:Np){
-    thetaP[i] ~ dnorm(0, tauP)
-  }
-  
-  # Model simulation and likelihood
-  for(j in 1:Np){ #for each population
-    for(i in 1:Nt){ #for each time step
-      Y.hat[j,i] <- a + thetaP[j] - b*S[j,i] # calculate model prediction
-      Y[j,i] ~ dnorm(Y.hat[j,i], tau) #likelihood
-    } #end i
-  } # end j	
-}
-
-
-hfit2<-jags.fit(data=list('S'=S, 'Y'=Y, 'Np'=Np, 'Nt'=Nt), params=c("a", "b", "sig", "sigP"), model=H.ricker.model)
-
-S<-summary(hfit2)
-par(mfrow=c(1,1))
-for(i in 1:7){
-  hist(hfit2[[1]][,i], main=colnames(hfit2[[1]])[i], col="#00000030", border=NA, xlab="", freq=FALSE)
-  hist(hfit2[[2]][,i], main=colnames(hfit2[[2]])[i], col="#FF000030", add=TRUE, freq=FALSE, border=NA)
-  hist(hfit2[[3]][,i], main=colnames(hfit2[[3]])[i], col="#00FF0030", add=TRUE, freq=FALSE, border=NA)
-  abline(v=S[[1]][i,1], lty=2)
-  abline(v=c(a,b,sig,sigP)[i])
-  abline(v=hfit1.par[i], lty=3)
-}
-legend("topright", lty=c(1,2,3), c("Real", "JAGS", "lmer"))
-
-
-#### For Ning's stuff ####
 #### ... Data manip ####
 ## Steph made matrices wherein rows were populations, and columns were time points. We have to switch that up a bit potentially because populations aren't sampled at same time points?
 y <- matrix(nrow = num_barrels, ncol = length(all_times)); colnames(y) <- all_times
@@ -455,8 +332,45 @@ for (i in 1:length(all_times)){
   }
 }
 y[ ,1] <- rep(full_ts_ordered$y_samp[1], nrow(y)) # Might have to change this such that there's a different initial sample from each bucket but for now, keeping as is because shouldn't make a huge difference
+y[is.na(y)] = -1
 
 #### ... JAGS ####
+## With NA statement
+# exp_decay_model <- function(){
+#   t_elap <- 0.5
+#   
+#   # Priors on parameters
+#   alpha ~ dunif(0, 1)
+#   alpha_tau ~ dunif(0, 100)
+#   alpha_tau_pop ~ dunif(0, 100)
+#   y0_mean ~ dnorm(50000, 10)
+#   y0_var ~ dnorm(0, 10)
+#   
+#   # Hierarchical part - a different theta_pop for each population:
+#   for(i in 1:num_barrels){
+#     theta_pop[i] ~ dnorm(0, alpha_tau_pop)
+#     y0[i] ~ dnorm(y0_mean, y0_var)
+#   }
+#   
+#   # Model simulation
+#   for (i in 1:num_barrels){ # For each population
+#     yhat[i, 1] <- y0[i]
+#     for (j in 2:ncol(y)){ # For each time step
+#         yhat[i, j] <- yhat[i, j - 1]*exp(-t_elap*alpha_pop*theta_pop[i]) # Calculate model prediction
+#     }
+#   }
+#   
+#   # Likelihood
+#   for (i in 1:num_barrels){ 
+#     for (j in 1:length(all_times)){ 
+#       if(!is.na(y[i, j])){
+#         y[i, j] ~ dpois(yhat[i, j]) # Likelihood
+#       }
+#     } 
+#   }
+# }
+
+## Without NA statement
 exp_decay_model <- function(){
   t_elap <- 0.5
   
@@ -464,32 +378,37 @@ exp_decay_model <- function(){
   alpha ~ dunif(0, 1)
   alpha_tau ~ dunif(0, 100)
   alpha_tau_pop ~ dunif(0, 100)
+  y0_mean ~ dnorm(50000, 10)
+  y0_var ~ dnorm(0, 10)
   
   # Hierarchical part - a different theta_pop for each population:
   for(i in 1:num_barrels){
     theta_pop[i] ~ dnorm(0, alpha_tau_pop)
+    y0[i] ~ dnorm(y0_mean, y0_var)
   }
   
   # Model simulation
   for (i in 1:num_barrels){ # For each population
-    for (j in 1:ncol(y)){ # For each time step
-      if (!is.na(y[i, j])){
-        yhat[i, j] <- yhat[i, j]*exp(-t_elap*alpha_pop*theta_pop[i]) # Calculate model prediction
-      }
+    yhat[i, 1] <- y0[i]
+    for (j in 2:length(all_times)){ # For each time step
+      yhat[i, j] <- yhat[i, j - 1]*exp(-t_elap*alpha_tau_pop*theta_pop[i]) # Calculate model prediction
     }
   }
   
   # Likelihood
   for (i in 1:num_barrels){ 
     for (j in 1:length(all_times)){ 
-      if(!is.na(y[i, j])){
+      #if(y[i, j] > 0){
         y[i, j] ~ dpois(yhat[i, j]) # Likelihood
-      }
+      #}
     } 
   }
 }
 
-
+fit <- jags.fit(data = list("y" = y, "num_barrels" = num_barrels, "all_times" = all_times), 
+                params = c("alpha", "alpha_tau", "alpha_tau_pop", "y0_mean", "y0_var"), 
+                model = exp_decay_model)
+fit_summ <- summary(fit)
 
 
 
