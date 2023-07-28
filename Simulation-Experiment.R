@@ -6,20 +6,21 @@ library(runjags)
 library(dclone)
 library(lattice)
 library(lme4)
+library(MCMCvis)
 
 #### Getting constant degradation rates for each of 9 barrels ####
 # Required objects
 min <- 0.05; max <- 0.34; mean <- (min + max)/2; print(mean)
 num_barrels <- 9
 # Taking a look at distribution
-hist(rnorm(1000, mean = mean, sd = 0.1))
+hist(rnorm(1000, mean = mean, sd = 1))
 # Sampling 9 decay rates
 r_vec <- c()
 set.seed(123)
 for (i in 1:num_barrels) {
-  r_vec[i] <- round(rnorm(1, mean = mean, sd = 0.01), digits = 2)
+  r_vec[i] <- round(rnorm(1, mean = mean, sd = 1), digits = 2)
   while(r_vec[i] < min | r_vec[i] > max)
-  {r_vec[i] <- round(rnorm(1, mean = mean, sd = 0.01), digits = 2)}
+  {r_vec[i] <- round(rnorm(1, mean = mean, sd = 1), digits = 2)}
 }; print(r_vec); print(mean(r_vec))
 
 #### Setting up sampling regimes for each of 9 barrels ####
@@ -50,9 +51,11 @@ for (i in 2:length(t1 + 1)){
 }; vol <- vol[2:length(vol)]
 
 #### Sampling initial abundance ####
-set.seed(123); y_init <- 1e6
-y_samp_init <- y_select <- rbinom(1, y_init, samp_vol/(vol[1] + samp_vol))
-y_samp_init <- c(NA, 0.0, y_samp_init)
+set.seed(123); y_init <- round(rnorm(num_barrels, 1e6, 100), 0)
+y_samp_init <- c()
+for (i in 1:num_barrels){
+  y_samp_init[i] <- rbinom(1, y_init[i], samp_vol/(vol[1] + samp_vol))
+}
 
 #### Generating data ####
 ## Barrel 1
@@ -256,7 +259,8 @@ plot(x = all_times, y = y9_obs_err)
 y9_samp <- cbind(t9[2:length(t9)], y9_samp)
 Barrel <- c(rep(9, nrow(y9_samp))); y9_samp <- cbind(Barrel, y9_samp)
 
-full_ts <- rbind(y_samp_init, y1_samp, y2_samp, y3_samp, y4_samp, y5_samp, y6_samp, y7_samp, y8_samp, y9_samp)
+## Concatenating outputs
+full_ts <- rbind(mean(y_samp_init), y1_samp, y2_samp, y3_samp, y4_samp, y5_samp, y6_samp, y7_samp, y8_samp, y9_samp)
 full_ts <- as.data.frame(full_ts); colnames(full_ts) <- c("barrel", "t", "y_samp")
 # Ordering generated data by sampling time
 full_ts_ordered <- full_ts[with(full_ts, order(t)), ]
@@ -331,35 +335,40 @@ for (i in 1:length(all_times)){
     }
   }
 }
-y[ ,1] <- rep(full_ts_ordered$y_samp[1], nrow(y)) # Might have to change this such that there's a different initial sample from each bucket but for now, keeping as is because shouldn't make a huge difference
+y[ ,1] <- y_samp_init # Adding initial values; this could change depending on how sampling is done
+# y[is.na(y)] = -1
+
+# Making some more quick data to try to troubleshoot this model
+y <- rbind(y1_obs_err, y2_obs_err, y3_obs_err, y4_obs_err, y5_obs_err, y6_obs_err, y7_obs_err, y8_obs_err, y9_obs_err)
+inits <- rnorm(9, 1e6, 100)
+y <- y[ ,2:ncol(y)]; y <- cbind(inits, y)
 
 exp_decay_model <- function(){
   t_elap <- 0.5
   
   # Priors on parameters
-  alpha ~ dunif(0, 1)
-  alpha_tau ~ dunif(0, 100)
-  alpha_tau_pop ~ dunif(0, 100)
-  y0_mean ~ dnorm(50000, 10)
-  y0_var ~ dunif(0, 10)
+  alpha ~ dunif(0, 1) # Decay rate
+  alpha_tau_pop ~ dunif(0, 5) # Variation around decay rate by population
+  y0_mean ~ dnorm(1e6, 10)
+  # y0_var ~ dunif(0, 10)
   
   # Hierarchical part - a different theta_pop for each population:
   for(i in 1:num_barrels){
-    theta_pop[i] ~ dnorm(0, alpha_tau_pop)
-    y0[i] ~ dnorm(y0_mean, y0_var)
+    theta_pop[i] ~ dnorm(0, alpha_tau_pop) # Decay rate by population
+    # y0[i] ~ dnorm(y0_mean, y0_var)
   }
   
   # Model simulation
   for (i in 1:num_barrels){ # For each population
-    yhat[i, 1] <- y0[i]
+    yhat[i, 1] <- y0_mean # y0[i]
     for (j in 2:length(all_times)){ # For each time step
-      yhat[i, j] <- yhat[i, j - 1]*exp(-t_elap*alpha*theta_pop[i]) # Calculate model prediction
+      yhat[i, j] <- yhat[i, j - 1]*exp(-t_elap*(alpha + theta_pop[i])) # Calculate model prediction
     }
   }
   
   # Likelihood
   for (i in 1:num_barrels){ 
-    for (j in 1:length(all_times)){ 
+    for (j in 2:length(all_times)){ 
       #if(y[i, j] > 0){
         y[i, j] ~ dpois(yhat[i, j]) # Likelihood
       #}
@@ -368,9 +377,18 @@ exp_decay_model <- function(){
 }
 
 fit <- jags.fit(data = list("y" = y, "num_barrels" = num_barrels, "all_times" = all_times), 
-                params = c("alpha", "alpha_tau", "alpha_tau_pop", "y0_mean", "y0_var"), 
-                model = exp_decay_model)
-summary(fit)
+                params = c("alpha", "alpha_tau_pop", "y0_mean"), #,"y0_var"), 
+                model = exp_decay_model,
+                n.iter = 2000, n.chains = 4)
+summary(fit) 
+
+MCMCpstr(fit)
+MCMCtrace(fit)
+
+#### Troubleshooting ####
+# (1) less variation in data
+# (2) more variation in data
+# (3) make sure initial values are all different
 
 
 
@@ -395,11 +413,7 @@ summary(fit)
 
 
 
-
-
-
-
-#### ... TO DO! ####
+#### TO DO! ####
 
 #### Estimated abundances ####
 y0_est <- as.numeric(y0_est); r_est <- as.numeric(r_est)
@@ -412,18 +426,3 @@ points(all_times[1:20], y_obs_err[1:20], col = "cornflowerblue", pch = 16)
 points(all_times[1:20], y_est[1:20], col = "firebrick2", pch = 18)
 legend("topright", legend=c("Deterministic data", "Observed data", "Estimated data"),
        col=c("black", "cornflowerblue", "firebrick2"), lty = c(1, NA, NA), pch = c(NA, 16, 18), cex = 0.8)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
