@@ -44,7 +44,7 @@ plot(x = all_times, y = y_obs)
 abline(h = y0_obs*0.05)
 
 #### Setting up barrel volumes to implement sampling error ####
-samp_vol <- 5; barrel_vol <- 100 # Under these conditions, you can sample each barrel a maximum of 40 times
+samp_vol <- 5; barrel_vol <- 100 # Under these conditions, you can sample each barrel a maximum of 20 times
 vol <- c(barrel_vol)
 for (i in 2:length(t1 + 1)){
   vol[i] <- vol[i - 1] - samp_vol
@@ -66,7 +66,7 @@ t_elap <- 0.5 # Units are in days, so 0.5 is half a day
 y_prev <- 1e6; y1_obs_err <- c(); y1_obs_err[1] <- y_prev; y1_samp <- c(); j <- 2
 # Loop to generate data with (1) process error, (2) environmental stochasticity, and (3) sampling error
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[1]*exp(-rnorm(1, 0, 0.1)))) # Determine eDNAs that "die" via exponential distribution (process error) and environmental stochasticity
+  y_d <- rbinom(1, y_prev, 1 - exp(-(all_times[i] - all_times[i - 1])*r_vec[1]*exp(-rnorm(1, 0, 0.1)))) # Determine eDNAs that "die" via exponential distribution (process error) and environmental stochasticity
   if (all_times[i] %in% t1){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) # Sample eDNAs from remaining with sampling error via sampled volume vs total remaining volume
     y1_samp[j - 1] <- y_select; j <- j + 1 # Add sampled eDNAs to observation vector
@@ -88,7 +88,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y2_obs_err <- c(); y2_obs_err[1] <- y_prev; y2_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[2]*exp(-rnorm(1, 0, 0.1)))) 
+  y_d <- rbinom(1, y_prev, 1 - exp(-(all_times[i] - all_times[i - 1])*r_vec[2]*exp(-rnorm(1, 0, 0.1)))) 
   if (all_times[i] %in% t2){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y2_samp[j - 1] <- y_select; j <- j + 1 
@@ -110,7 +110,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y3_obs_err <- c(); y3_obs_err[1] <- y_prev; y3_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[3]*exp(-rnorm(1, 0, 0.1)))) 
+  y_d <- rbinom(1, y_prev, 1 - exp(-(all_times[i] - all_times[i - 1])*r_vec[3]*exp(-rnorm(1, 0, 0.1)))) 
   if (all_times[i] %in% t3){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y3_samp[j - 1] <- y_select; j <- j + 1 
@@ -132,7 +132,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y4_obs_err <- c(); y4_obs_err[1] <- y_prev; y4_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[4]*exp(-rnorm(1, 0, 0.1))))
+  y_d <- rbinom(1, y_prev, 1 - exp(-(all_times[i] - all_times[i - 1])*r_vec[4]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t4){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y4_samp[j - 1] <- y_select; j <- j + 1 
@@ -154,7 +154,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y5_obs_err <- c(); y5_obs_err[1] <- y_prev; y5_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[5]*exp(-rnorm(1, 0, 0.1))))
+  y_d <- rbinom(1, y_prev, 1 - exp(-(all_times[i] - all_times[i - 1])*r_vec[5]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t5){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y5_samp[j - 1] <- y_select; j <- j + 1 
@@ -176,7 +176,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y6_obs_err <- c(); y6_obs_err[1] <- y_prev; y6_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[6]*exp(-rnorm(1, 0, 0.1))))
+  y_d <- rbinom(1, y_prev, 1 - exp(-(all_times[i] - all_times[i - 1])*r_vec[6]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t6){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y6_samp[j - 1] <- y_select; j <- j + 1 
@@ -198,7 +198,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y7_obs_err <- c(); y7_obs_err[1] <- y_prev; y7_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[7]*exp(-rnorm(1, 0, 0.1))))
+  y_d <- rbinom(1, y_prev, 1 - exp(-(all_times[i] - all_times[i - 1])*r_vec[7]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t7){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y7_samp[j - 1] <- y_select; j <- j + 1 
@@ -220,7 +220,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y8_obs_err <- c(); y8_obs_err[1] <- y_prev; y8_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[8]*exp(-rnorm(1, 0, 0.1))))
+  y_d <- rbinom(1, y_prev, 1 - exp(-(all_times[i] - all_times[i - 1])*r_vec[8]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t8){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y8_samp[j - 1] <- y_select; j <- j + 1 
@@ -242,7 +242,7 @@ set.seed(123)
 t_elap <- 0.5 
 y_prev <- 1e6; y9_obs_err <- c(); y9_obs_err[1] <- y_prev; y9_samp <- c(); j <- 2
 for (i in 2:length(all_times)){
-  y_d <- rbinom(1, y_prev, 1 - exp(-t_elap*r_vec[9]*exp(-rnorm(1, 0, 0.1))))
+  y_d <- rbinom(1, y_prev, 1 - exp(-(all_times[i] - all_times[i - 1])*r_vec[9]*exp(-rnorm(1, 0, 0.1))))
   if (all_times[i] %in% t9){
     y_select <- rbinom(1, y_prev - y_d, samp_vol/vol[j - 1]) 
     y9_samp[j - 1] <- y_select; j <- j + 1 
@@ -260,7 +260,8 @@ y9_samp <- cbind(t9[2:length(t9)], y9_samp)
 Barrel <- c(rep(9, nrow(y9_samp))); y9_samp <- cbind(Barrel, y9_samp)
 
 ## Concatenating outputs
-full_ts <- rbind(mean(y_samp_init), y1_samp, y2_samp, y3_samp, y4_samp, y5_samp, y6_samp, y7_samp, y8_samp, y9_samp)
+y_samp_init_row <- c(NA, 0.0, mean(y_samp_init))
+full_ts <- rbind(y_samp_init_row, y1_samp, y2_samp, y3_samp, y4_samp, y5_samp, y6_samp, y7_samp, y8_samp, y9_samp)
 full_ts <- as.data.frame(full_ts); colnames(full_ts) <- c("barrel", "t", "y_samp")
 # Ordering generated data by sampling time
 full_ts_ordered <- full_ts[with(full_ts, order(t)), ]
@@ -289,7 +290,7 @@ lines(x = all_times, y = y9_obs_err, col = "salmon")
 y <- matrix(nrow = num_barrels, ncol = length(all_times)); colnames(y) <- all_times
 t1 <- t1[2:length(t1)]; t2 <- t2[2:length(t2)]; t3 <- t3[2:length(t3)]; t4 <- t4[2:length(t4)]; t5 <- t5[2:length(t5)]; t6 <- t6[2:length(t6)]; t7 <- t7[2:length(t7)]; t8 <- t8[2:length(t8)]; t9 <- t9[2:length(t9)]
 b1 <- 1; b2 <- 1; b3 <- 1; b4 <- 1; b5 <- 1; b6 <- 1; b7 <- 1; b8 <- 1; b9 <- 1
-for (i in 1:length(all_times)){
+for (i in 2:length(all_times)){
   if (all_times[i] %in% t1){
     y[1, i] <- y1_samp[b1, 3]
     b1 <- b1 + 1
@@ -387,8 +388,9 @@ MCMCtrace(fit)
 
 #### Troubleshooting ####
 # (1) less variation in data
-# (2) more variation in data
-# (3) make sure initial values are all different
+# (2) remove hierarchical parts (this works, so problem is the hierarchical element)
+# (3) more variation in data + add back in hierarchical parts (this didn't work)
+# (4) make sure initial values are all different (this didn't work)
 
 
 
@@ -413,12 +415,10 @@ MCMCtrace(fit)
 
 
 
-#### TO DO! ####
+#### TO DO: Comparison ####
 
 #### Estimated abundances ####
-y0_est <- as.numeric(y0_est); r_est <- as.numeric(r_est)
-y_est <- y0_est*exp(-all_times*r_est)
-plot(y_est)
+# ... y_est
 
 #### Plotting (1) observations without error, (2) generated data, and (3) estimated data for comparison ####
 plot(all_times[1:20], y_obs[1:20], type = "l", xlab = "Day", ylab = "eDNA Concentration")
