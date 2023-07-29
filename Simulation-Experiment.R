@@ -7,6 +7,7 @@ library(dclone)
 library(lattice)
 library(lme4)
 library(MCMCvis)
+library(bayesplot)
 
 #### Getting constant degradation rates for each of 9 barrels ####
 # Required objects
@@ -337,60 +338,54 @@ for (i in 2:length(all_times)){
   }
 }
 y[ ,1] <- y_samp_init # Adding initial values; this could change depending on how sampling is done
-# y[is.na(y)] = -1
 
-# Making some more quick data to try to troubleshoot this model
-y <- rbind(y1_obs_err, y2_obs_err, y3_obs_err, y4_obs_err, y5_obs_err, y6_obs_err, y7_obs_err, y8_obs_err, y9_obs_err)
-inits <- rnorm(9, 1e6, 100)
-y <- y[ ,2:ncol(y)]; y <- cbind(inits, y)
+## Making some more quick data to try to troubleshoot this model
+# y <- rbind(y1_obs_err, y2_obs_err, y3_obs_err, y4_obs_err, y5_obs_err, y6_obs_err, y7_obs_err, y8_obs_err, y9_obs_err)
+# inits <- rnorm(9, 1e6, 100)
+# y <- y[ ,2:ncol(y)]; y <- cbind(inits, y)
 
 exp_decay_model <- function(){
   t_elap <- 0.5
   
   # Priors on parameters
   alpha ~ dunif(0, 1) # Decay rate
-  alpha_tau_pop ~ dunif(0, 5) # Variation around decay rate by population
-  y0_mean ~ dnorm(1e6, 10)
-  # y0_var ~ dunif(0, 10)
+  alpha_sig_pop ~ dunif(0, 5) # Variation around decay rate by population
+  alpha_tau_pop <- 1/(alpha_sig_pop^2) # Precision because JAGS 
+  y0_mean ~ dnorm(50000, 1/(1^2))
+  y0_var ~ dunif(0, 1)
   
   # Hierarchical part - a different theta_pop for each population:
   for(i in 1:num_barrels){
-    theta_pop[i] ~ dnorm(0, alpha_tau_pop) # Decay rate by population
-    # y0[i] ~ dnorm(y0_mean, y0_var)
+    alpha_pop[i] ~ dnorm(alpha, alpha_tau_pop) # Decay rate by population
+    y0[i] ~ dnorm(y0_mean, 1/(y0_var^2))
   }
   
   # Model simulation
   for (i in 1:num_barrels){ # For each population
-    yhat[i, 1] <- y0_mean # y0[i]
+    yhat[i, 1] <- y0[i]
     for (j in 2:length(all_times)){ # For each time step
-      yhat[i, j] <- yhat[i, j - 1]*exp(-t_elap*(alpha + theta_pop[i])) # Calculate model prediction
+      yhat[i, j] <- yhat[i, j - 1]*exp(-t_elap*(alpha_pop[i])) # Calculate model prediction
     }
   }
   
   # Likelihood
   for (i in 1:num_barrels){ 
-    for (j in 2:length(all_times)){ 
-      #if(y[i, j] > 0){
+    for (j in 1:length(all_times)){ 
+      # if(y[i, j] > 0){
         y[i, j] ~ dpois(yhat[i, j]) # Likelihood
-      #}
+      # }
     } 
   }
 }
 
 fit <- jags.fit(data = list("y" = y, "num_barrels" = num_barrels, "all_times" = all_times), 
-                params = c("alpha", "alpha_tau_pop", "y0_mean"), #,"y0_var"), 
+                params = c("alpha", "alpha_sig_pop", "alpha_pop", "y0_mean"), 
                 model = exp_decay_model,
-                n.iter = 2000, n.chains = 4)
+                n.adapt = 2000, n.iter = 2000, n.chains = 4,
+                set.seed(123))
 summary(fit) 
-
-MCMCpstr(fit)
 MCMCtrace(fit)
-
-#### Troubleshooting ####
-# (1) less variation in data
-# (2) remove hierarchical parts (this works, so problem is the hierarchical element)
-# (3) more variation in data + add back in hierarchical parts (this didn't work)
-# (4) make sure initial values are all different (this didn't work)
+# mcmc_pairs(fit)
 
 
 
