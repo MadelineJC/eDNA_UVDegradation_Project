@@ -295,46 +295,38 @@ for (i in 2:length(all_times)){
   if (all_times[i] %in% t1){
     y[1, i] <- y1_samp[b1, 3]
     b1 <- b1 + 1
-  } else {
-    if (all_times[i] %in% t2){
-      y[2, i] <- y2_samp[b2, 3]
-      b2 <- b2 + 1
-    } else {
-      if (all_times[i] %in% t3){
-        y[3, i] <- y3_samp[b3, 3]
-        b3 <- b3 + 1
-      } else {
-        if (all_times[i] %in% t4){
-          y[4, i] <- y4_samp[b4, 3]
-          b4 <- b4 + 1
-        } else {
-          if (all_times[i] %in% t5){
-            y[5, i] <- y5_samp[b5, 3]
-            b5 <- b5 + 1
-          } else {
-            if (all_times[i] %in% t6){
-              y[6, i] <- y6_samp[b6, 3]
-              b6 <- b6 + 1
-            } else {
-              if (all_times[i] %in% t7){
-                y[7, i] <- y7_samp[b7, 3]
-                b7 <- b7 + 1
-              } else {
-                if (all_times[i] %in% t8){
-                  y[8, i] <- y8_samp[b8, 3]
-                  b8 <- b8 + 1
-                } else {
-                  if (all_times[i] %in% t9){
-                    y[9, i] <- y9_samp[b9, 3]
-                    b9 <- b9 + 1
-                  } else { print(":(") }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+  }
+  if (all_times[i] %in% t2){
+    y[2, i] <- y2_samp[b2, 3]
+    b2 <- b2 + 1
+  }
+  if (all_times[i] %in% t3){
+    y[3, i] <- y3_samp[b3, 3]
+    b3 <- b3 + 1
+  }
+  if (all_times[i] %in% t4){
+    y[4, i] <- y4_samp[b4, 3]
+    b4 <- b4 + 1
+  }
+  if (all_times[i] %in% t5){
+    y[5, i] <- y5_samp[b5, 3]
+    b5 <- b5 + 1
+  }
+  if (all_times[i] %in% t6){
+    y[6, i] <- y6_samp[b6, 3]
+    b6 <- b6 + 1
+  }
+  if (all_times[i] %in% t7){
+    y[7, i] <- y7_samp[b7, 3]
+    b7 <- b7 + 1
+  }
+  if (all_times[i] %in% t8){
+    y[8, i] <- y8_samp[b8, 3]
+    b8 <- b8 + 1
+  }
+  if (all_times[i] %in% t9){
+    y[9, i] <- y9_samp[b9, 3]
+    b9 <- b9 + 1
   }
 }
 y[ ,1] <- y_samp_init # Adding initial values; this could change depending on how sampling is done
